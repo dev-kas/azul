@@ -74,7 +74,8 @@ export type DaemonMessage =
   | PatchScriptMessage
   | RequestSnapshotMessage
   | PongMessage
-  | ErrorMessage;
+  | ErrorMessage
+  | BuildSnapshotMessage;
 
 export interface PatchScriptMessage {
   type: "patchScript";
@@ -93,4 +94,9 @@ export interface PongMessage {
 export interface ErrorMessage {
   type: "error";
   message: string;
+}
+
+export interface BuildSnapshotMessage {
+  type: "buildSnapshot";
+  data: InstanceData[];
 }

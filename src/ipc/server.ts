@@ -5,12 +5,19 @@ import type { Server as HttpServer } from "http";
 
 export type MessageHandler = (message: StudioMessage) => void;
 
+interface IPCServerOptions {
+  requestSnapshotOnConnect?: boolean;
+}
+
 export class IPCServer {
   private wss: WebSocketServer;
   private client: WebSocket | null = null;
   private messageHandler: MessageHandler | null = null;
+  private connectionHandler: (() => void) | null = null;
+  private requestSnapshotOnConnect: boolean;
 
-  constructor(port?: number, server?: HttpServer) {
+  constructor(port?: number, server?: HttpServer, options?: IPCServerOptions) {
+    this.requestSnapshotOnConnect = options?.requestSnapshotOnConnect !== false;
     if (server) {
       // Use existing HTTP server
       this.wss = new WebSocketServer({ server });
@@ -32,6 +39,10 @@ export class IPCServer {
       }
 
       this.client = ws;
+
+      if (this.connectionHandler) {
+        this.connectionHandler();
+      }
 
       ws.on("message", (data) => {
         try {
@@ -71,11 +82,13 @@ export class IPCServer {
       }, 30000);
 
       // Request initial snapshot after a brief delay
-      setTimeout(() => {
-        if (this.client === ws) {
-          this.send({ type: "requestSnapshot" });
-        }
-      }, 100);
+      if (this.requestSnapshotOnConnect) {
+        setTimeout(() => {
+          if (this.client === ws) {
+            this.send({ type: "requestSnapshot" });
+          }
+        }, 100);
+      }
     });
 
     this.wss.on("listening", () => {
@@ -92,6 +105,13 @@ export class IPCServer {
    */
   public onMessage(handler: MessageHandler): void {
     this.messageHandler = handler;
+  }
+
+  /**
+   * Register a handler that fires when a Studio client connects
+   */
+  public onConnection(handler: () => void): void {
+    this.connectionHandler = handler;
   }
 
   /**

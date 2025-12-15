@@ -76,4 +76,46 @@ if (debugFlag) config.debugMode = true;
 
 log.debug(`Debug mode is on!`);
 
+if (command === "build") {
+  if (!noWarnFlag) {
+    log.warn(
+      "WARNING: Building will overwrite matching Studio scripts and create new ones from your local environment. Existing Studio instances will not be deleted. Proceed with caution!"
+    );
+    log.info("Continue with build? (Y/N)");
+
+    await new Promise<void>((resolve) => {
+      process.stdin.setEncoding("utf-8");
+      const rl = ReadLine.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+      });
+
+      rl.on("line", (input) => {
+        const answer = input.trim().toLowerCase();
+        if (answer === "y" || answer === "yes") {
+          rl.close();
+          resolve();
+        } else if (answer === "n" || answer === "no") {
+          log.info("Exiting build command...");
+          process.exit(0);
+        } else {
+          log.warn(
+            "Please answer Y (yes) or N (no). Continue with build? (Y/N)"
+          );
+        }
+      });
+    });
+  }
+
+  await new BuildCommand({ syncDir: config.syncDir }).run();
+
+  log.info("Build command completed.");
+  log.info(
+    "To continue syncing, please run 'azul' and restart the Roblox plugin."
+  );
+  log.info("Exiting...");
+
+  process.exit(0);
+}
+
 new SyncDaemon().start();

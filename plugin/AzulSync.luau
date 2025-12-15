@@ -127,6 +127,59 @@ local function isExcluded(instance: Instance)
 	return true
 end
 
+local function getOrCreatePath(pathSegments: { string }): Instance
+	local current: Instance = game
+	for index, segment in ipairs(pathSegments) do
+		local nextNode = current:FindFirstChild(segment)
+
+		if not nextNode then
+			if index == 1 then
+				local ok, service = pcall(function()
+					return game:GetService(segment)
+				end)
+				if ok and service then
+					nextNode = service
+				end
+			end
+
+			if not nextNode then
+				nextNode = Instance.new("Folder")
+				nextNode.Name = segment
+				nextNode.Parent = current
+			end
+		end
+
+		current = nextNode
+	end
+
+	return current
+end
+
+local function isProtectedRobloxContainer(instance: Instance?): boolean
+	if not instance then
+		return false
+	end
+
+	-- Top-level services cannot be destroyed or reparented
+	local okService = pcall(function()
+		return game:GetService(instance.Name)
+	end)
+	if instance.Parent == game and okService then
+		return true
+	end
+
+	-- Certain StarterPlayer children are locked (StarterPlayerScripts, StarterCharacterScripts, StarterGear)
+	local parent = instance.Parent
+	if parent and parent.ClassName == "StarterPlayer" then
+		local name = instance.Name
+		if name == "StarterPlayerScripts" or name == "StarterCharacterScripts" or name == "StarterGear" then
+			return true
+		end
+	end
+
+	return false
+end
+
 -- Utility: Check if instance should be included in snapshot (all instances)
 local function shouldIncludeInSnapshot(instance)
 	if not instance then
@@ -479,6 +532,128 @@ local function processMessage(message)
 		-- Daemon is requesting a full snapshot
 		infoPrint("[Azul]: Snapshot requested by daemon")
 		sendFullSnapshot()
+	elseif message.type == "buildSnapshot" then
+		-- One-time push from filesystem into Studio
+		infoPrint("[Azul]: Applying build snapshot from daemon")
+		table.sort(message.data, function(a, b)
+			return #a.path < #b.path
+		end)
+
+		local lockedContainerParents = {
+			StarterPlayerScripts = "StarterPlayer",
+			StarterCharacterScripts = "StarterPlayer",
+			StarterGear = "StarterPlayer",
+		}
+
+		local created = 0
+		for _, item in ipairs(message.data) do
+			local adjustedPath = {}
+			for i, segment in ipairs(item.path) do
+				adjustedPath[i] = segment
+			end
+
+			local protectedContainerName: string? = nil
+			local first = adjustedPath[1]
+			local maybeParent = lockedContainerParents[first]
+			if maybeParent and maybeParent ~= first then
+				table.insert(adjustedPath, 1, maybeParent)
+				protectedContainerName = adjustedPath[2]
+			end
+
+			if not protectedContainerName and #adjustedPath >= 2 then
+				local second = adjustedPath[2]
+				if lockedContainerParents[second] == adjustedPath[1] then
+					protectedContainerName = second
+				end
+			end
+
+			local serviceCandidate: Instance? = nil
+			if #adjustedPath == 1 then
+				local ok, service = pcall(function()
+					return game:GetService(adjustedPath[1])
+				end)
+				if ok then
+					serviceCandidate = service
+				end
+			end
+
+			local parentPath = {}
+			for i = 1, #adjustedPath - 1 do
+				parentPath[i] = adjustedPath[i]
+			end
+
+			local parent = getOrCreatePath(parentPath)
+			local existing = if serviceCandidate
+				then serviceCandidate
+				else parent:FindFirstChild(adjustedPath[#adjustedPath])
+			local instance = existing
+
+			local function isScriptClass(className: string)
+				return className == "Script" or className == "LocalScript" or className == "ModuleScript"
+			end
+
+			if existing and existing.ClassName ~= item.className then
+				if isProtectedRobloxContainer(existing) then
+					instance = existing
+				else
+					existing:Destroy()
+					instance = nil
+				end
+			end
+
+			if not instance and protectedContainerName then
+				local protectedParentName = lockedContainerParents[protectedContainerName]
+				if protectedParentName then
+					local ok, protectedParent = pcall(function()
+						return game:GetService(protectedParentName)
+					end)
+					if ok and protectedParent then
+						local protectedExisting = protectedParent:FindFirstChild(protectedContainerName)
+						if protectedExisting then
+							instance = protectedExisting
+						end
+					end
+				end
+			end
+
+			if not instance then
+				local newInstance
+				local ok, createdInstance = pcall(function()
+					return Instance.new(item.className)
+				end)
+				if ok and createdInstance then
+					newInstance = createdInstance
+				else
+					newInstance = Instance.new("Folder")
+				end
+				newInstance.Name = adjustedPath[#adjustedPath]
+				newInstance.Parent = parent
+				instance = newInstance
+				created += 1
+			else
+				if not serviceCandidate and not isProtectedRobloxContainer(instance) then
+					instance.Name = adjustedPath[#adjustedPath]
+				end
+			end
+
+			instance:SetAttribute(CONFIG.GUID_ATTRIBUTE, item.guid)
+			trackedInstances[instance] = item.guid
+			guidMap[item.guid] = instance
+			usedGuids[item.guid] = true
+
+			if isScriptClass(item.className) and item.source then
+				local ok, err = pcall(function()
+					(instance :: Script).Source = item.source
+				end)
+				if not ok then
+					warn("[Azul]: Failed to set source for", item.name, err)
+				end
+			end
+
+			attachListeners(instance)
+		end
+
+		infoPrint(`[Azul]: Build snapshot applied ({created} created/updated)`)
 	elseif message.type == "error" then
 		warn("Daemon error:", message.message)
 	elseif message.type == "pong" then
