@@ -67,9 +67,14 @@ I believe Script Sync is a great step forward from Roblox but, in the way it has
 ### Manual Install
 
 1. Clone the repository or download the ZIP and extract it.
-2. Install Node.js (if you haven't already) from [nodejs.org](https://nodejs.org/) or by using winget:
-   ```powershell
+2. Install Node.js (if you haven't already) from [nodejs.org](https://nodejs.org/) or by using your system's package manager:
+   ```bash
+   # Windows (using winget)
    winget install OpenJS.NodeJS.LTS
+   # macOS (using Homebrew)
+   brew install node
+   # Linux (using apt)
+   sudo apt install nodejs npm
    ```
 3. Install dependencies by running `npm install`.
 4. Build the project with `npm run build`.
