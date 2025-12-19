@@ -39,7 +39,7 @@ Options:
 }
 
 if (args.includes("--version")) {
-  console.log(`Azul version: ${version}`);
+  log.info(`Azul version: ${version}`);
   process.exit(0);
 }
 
