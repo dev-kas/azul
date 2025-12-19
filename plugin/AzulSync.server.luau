@@ -259,7 +259,7 @@ local function getOrCreateGUID(instance)
 
 		-- Generate new GUID and mark as used IMMEDIATELY
 
-		task.wait()
+		task.wait() -- GenerateGUID can collide if called in the same tick/frame
 
 		repeat
 			guid = HttpService:GenerateGUID(false):gsub("-", "")
