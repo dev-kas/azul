@@ -253,17 +253,10 @@ local function getOrCreateGUID(instance)
 		end
 	end
 
-	if (not guid) or guidInUseByOther or guidUnknownButUsed or guidUsedByAnotherInstance then
-		if CONFIG.DEBUG_MODE then
-			debugPrint(
-				string.format(
-					"[🐛 Azul]: Regenerating GUID (duplication detected). had=%s owner=%s unknownButUsed=%s",
-					tostring(guid),
-					guidOwner and guidOwner:GetFullName() or "nil",
-					tostring(guidUnknownButUsed)
-				)
-			)
-		end
+	if guidInUseByOther or guidUnknownButUsed or guidUsedByAnotherInstance then
+		debugPrint(
+			`[🐛 Azul]: Regenerating GUID (duplication detected). had={guid} owner={guidOwner} unknownButUsed={guidUnknownButUsed}`
+		)
 
 		-- Drop stale ownership
 		if originalGuid and guidMap[originalGuid] == instance then
@@ -282,6 +275,15 @@ local function getOrCreateGUID(instance)
 		until not usedGuids[guid]
 
 		-- MARK AS USED RIGHT AWAY before setting attribute
+		usedGuids[guid] = true
+		guidMap[guid] = instance
+
+		instance:SetAttribute(CONFIG.GUID_ATTRIBUTE, guid)
+	elseif not guid then
+		repeat
+			guid = HttpService:GenerateGUID(false):gsub("-", "")
+		until not usedGuids[guid]
+
 		usedGuids[guid] = true
 		guidMap[guid] = instance
 
@@ -882,6 +884,12 @@ function stopSync()
 		wsClient = nil
 	end
 
+	-- Clear GUID attributes if configured
+	if CONFIG.CLEAR_GUIDS_ON_EXIT then
+		clearAllGUIDAttributes()
+		infoPrint("[Azul]: Cleared all GUID attributes")
+	end
+
 	trackedInstances = {}
 	guidMap = {}
 
@@ -889,11 +897,6 @@ function stopSync()
 		conn:Disconnect()
 	end
 	connections = {}
-
-	-- Clear GUID attributes if configured
-	if CONFIG.CLEAR_GUIDS_ON_EXIT then
-		clearAllGUIDAttributes()
-	end
 
 	infoPrint("[Azul]: Sync stopped")
 end
