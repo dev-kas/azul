@@ -9,6 +9,11 @@ local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 local ScriptEditorService = game:GetService("ScriptEditorService")
 
+-- Prevent from running if the game is being Playtested
+if RunService:IsRunning() then
+	return
+end
+
 local azulPluginFolder = script.Parent
 
 -- Import WebSocket client
