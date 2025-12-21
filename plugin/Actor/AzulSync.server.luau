@@ -59,6 +59,7 @@ local CONFIG = {
 
 	DEBUG_MODE = false,
 	SILENT_MODE = false,
+	IGNORE_PACKAGES = true, -- Do not write GUID attributes under packages; use :GetDebugId() instead (less reliable)
 
 	CLEAR_GUIDS_ON_EXIT = true, -- Clear all GUID attributes on disconnect
 }
@@ -224,6 +225,18 @@ local function isProtectedRobloxContainer(instance: Instance?): boolean
 	return false
 end
 
+-- Utility: Check if an instance lives inside a package (any ancestor has a PackageLink)
+local function isInPackage(instance: Instance): boolean
+	local current = instance
+	while current do
+		if current:FindFirstChildWhichIsA("PackageLink") or current:FindFirstAncestorWhichIsA("PackageLink") then
+			return true
+		end
+		current = current.Parent
+	end
+	return false
+end
+
 -- Utility: Check if instance should be included in snapshot (all instances)
 local function shouldIncludeInSnapshot(instance)
 	if not instance then
@@ -235,6 +248,15 @@ end
 
 -- Utility: Generate or retrieve GUID for instance
 local function getOrCreateGUID(instance)
+	-- Optional: avoid stamping package content; use UniqueId (less reliable) instead
+	if CONFIG.IGNORE_PACKAGES and isInPackage(instance) then
+		local uniqueId = instance:GetDebugId(0)
+		guidMap[uniqueId] = instance
+		trackedInstances[instance] = uniqueId
+		usedGuids[uniqueId] = true
+		return uniqueId
+	end
+
 	local guid = instance:GetAttribute(CONFIG.GUID_ATTRIBUTE)
 	local originalGuid = guid
 
@@ -1116,6 +1138,26 @@ settingsSection:AddChild(clearGuidsCheckbox:GetFrame())
 settingsSection:AddChild(
 	createInfoLabel(
 		"When enabled, all Azul GUID attributes only exist when the Plugin is connected. Disabling this can improve plugin startup time, but leaving lingering GUID attributes when publishing your game may cause memory performance issues on low-end devices."
+	)
+)
+
+-- Ignore Packages setting
+local ignorePackagesCheckbox = LabeledCheckbox.new(
+	"ignorePackages", -- name suffix of the gui object
+	"Ignore Packages", -- the text displayed on the button
+	false -- initial disabled state
+)
+
+ignorePackagesCheckbox:SetValue(CONFIG.IGNORE_PACKAGES)
+ignorePackagesCheckbox:SetValueChangedFunction(function(newValue)
+	CONFIG.IGNORE_PACKAGES = newValue
+	debugPrint("[🐛 Azul]: Ignore Packages set to:", newValue)
+end)
+
+settingsSection:AddChild(ignorePackagesCheckbox:GetFrame())
+settingsSection:AddChild(
+	createInfoLabel(
+		"When enabled, Azul will not write GUID attributes inside packages. It will track package instances by their UniqueId instead, which is less reliable for long-lived tracking."
 	)
 )
 
