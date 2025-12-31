@@ -22,13 +22,15 @@ export class IPCServer {
       // Use existing HTTP server
       this.wss = new WebSocketServer({
         server,
-        perMessageDeflate: false, // Roblox WebSocket client does not negotiate RSV2/RSV3 extensions
+        // perMessageDeflate: false, // Roblox WebSocket client does not negotiate RSV2/RSV3 extensions
+        maxPayload: 256 * 1024 * 1024, // 256 MB
       });
     } else {
       // Create standalone WebSocket server
       this.wss = new WebSocketServer({
         port: port || 8080,
-        perMessageDeflate: false, // avoid RSV2/RSV3 bits from compression
+        // perMessageDeflate: false, // avoid RSV2/RSV3 bits from compression
+        maxPayload: 256 * 1024 * 1024, // 256 MB
       });
     }
     this.setupServer();
