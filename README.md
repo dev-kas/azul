@@ -187,6 +187,7 @@ Edit `src/config.ts` to customize:
 
 The plugin's settings can be edited from the GUI or by editing `src/plugin/AzulSync.lua`:
 
+- **`SETTINGS_SCOPE`**: Whether settings should be global (applies to all projects) or per-project (applies only to the currently opened Place).
 - **`WS_URL`**: Port used for communication between the Desktop Daemon and Studio Plugin.
 - **`SERVICE_LIST`**: A list of services. This list can act as a whitelist (only these services are synced) or a blacklist (these services are excluded from syncing).
   - **`LIST_TYPE`**: Whether the service list is treated as a whitelist or blacklist.
