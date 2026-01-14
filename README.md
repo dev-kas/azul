@@ -6,7 +6,7 @@ Azul allows you to use professional-grade tools like Visual Studio Code in Roblo
 
 _Yes, the name is a pun on Rojo (Spanish for "red"). Azul means "blue"!_
 
-<a href="#quick-start"><b>Quick Start</b></a> — <a href="#why-azul"><b>Why Azul</b></a> — <a href="[#configuration](https://github.com/Ransomwave/azul/wiki)"><b>Documentation</b></a>
+<a href="#quick-start"><b>Quick Start</b></a> — <a href="#why-azul"><b>Why Azul</b></a> — <a href="https://github.com/Ransomwave/azul/wiki"><b>Documentation</b></a>
 
 ## Philosophy
 
