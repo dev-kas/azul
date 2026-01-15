@@ -22,7 +22,7 @@ interface PushOptions {
 export class PushCommand {
   private ipc: IPCServer;
   private options: PushOptions;
-  private receivedConfig: PushConfig | null = null;
+  // private receivedConfig: PushConfig | null = null;
 
   constructor(options: PushOptions = {}) {
     this.options = options;
@@ -202,7 +202,7 @@ export class PushCommand {
       this.ipc.onMessage((message: StudioMessage) => {
         if (message.type === "pushConfig") {
           const pushConfig = (message as PushConfigMessage).config;
-          this.receivedConfig = pushConfig;
+          // this.receivedConfig = pushConfig;
           clearTimeout(timeout);
           if (!resolved) {
             resolved = true;
