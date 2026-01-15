@@ -18,33 +18,34 @@ const noWarnFlag = args.find((a) => a === "--no-warn");
 const rojoFlag = args.includes("--rojo");
 const rojoProjectFlag = getFlagValue(["--rojo-project"], args);
 
-const version = "1.1.0";
+const version = "1.2.0";
 
 if (args.includes("--help") || args.includes("-h")) {
   console.log(`
-Usage: azul [command] [options]
-
-Arguments:
-  [arg]               Optional argument or command
-  <arg>               Required argument or command 
+Usage:
+  azul <command> [options]
 
 Commands:
   build                One-time push from filesystem into Studio
   push                 Selective push using mappings (place config or -s/-d)
 
-Options:
-  --version           Show Azul version
-  --no-warn           Disable warning prompts for dangerous operations (like running in /sync or using build)
-  --sync-dir=<path>   Specify the directory to sync
-  --port=<number>     Specify the port number
-  --debug             Enables debug mode
-  --rojo              Opt into Rojo compatibility parsing for build/push (never default)
-  --rojo-project=FILE Override Rojo project file (use a file other than default.project.json)
-  -s, --source        Source folder (push)
-  -d, --destination   Destination path, dot or slash separated (push)
-  --destructive       Wipe destination children before push (push)
-  --no-place-config   Do not read push mappings from place ModuleScript (push)
+Global Options:
   -h, --help          Show this help message
+  --version           Show Azul version
+  --debug             Print verbose debug output
+  --no-warn           Disable confirmation prompts for dangerous operations
+  --sync-dir=<path>   Directory to sync (default: current directory)
+  --port=<number>     Studio connection port
+
+Rojo Compatibility (build & push):
+  --rojo              Enable Rojo-compatible parsing
+  --rojo-project=FILE Use a Rojo project file (default: default.project.json)
+
+Push Options:
+  -s, --source        Source folder to push
+  -d, --destination   Destination path (dot or slash separated)
+  --no-place-config   Ignore push mappings from place ModuleScript
+  --destructive       ⚠ Wipe destination children before pushing
   `);
   process.exit(0);
 }
